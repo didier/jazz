@@ -1,6 +1,6 @@
 import { CleanedWhere } from "better-auth/adapters";
 import { describe, expect, it } from "vitest";
-import { filterListByWhere, paginateList, sortListByField } from "./utils.js";
+import { filterListByWhere, paginateList, sortListByField } from "../utils.js";
 
 describe("filterListByWhere", () => {
   const testData = [

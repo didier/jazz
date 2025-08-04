@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { JazzBetterAuthDatabaseAdapter } from "jazz-better-auth/database-adapter";
+import { JazzBetterAuthDatabaseAdapter } from "jazz-tools/better-auth/database-adapter";
 
 export const auth = betterAuth({
   database: JazzBetterAuthDatabaseAdapter({

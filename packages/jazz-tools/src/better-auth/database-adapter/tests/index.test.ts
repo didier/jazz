@@ -1,8 +1,10 @@
 import { runAdapterTest } from "better-auth/adapters/test";
-import { createWorkerAccount } from "jazz-run/createWorkerAccount";
-import { startSyncServer } from "jazz-run/startSyncServer";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { JazzBetterAuthDatabaseAdapter } from "./index.js";
+import { afterAll, beforeAll, describe } from "vitest";
+import {
+  createWorkerAccount,
+  startSyncServer,
+} from "../../../tools/testing.js";
+import { JazzBetterAuthDatabaseAdapter } from "../index.js";
 
 describe("JazzBetterAuthDatabaseAdapter Tests", async () => {
   let syncServer: any;
@@ -11,21 +13,11 @@ describe("JazzBetterAuthDatabaseAdapter Tests", async () => {
   let adapter: ReturnType<typeof JazzBetterAuthDatabaseAdapter>;
 
   beforeAll(async () => {
-    syncServer = await startSyncServer({
-      port: undefined,
-      inMemory: true,
-      db: "memory",
-    });
-
-    const address = syncServer.address();
-
-    if (typeof address !== "object" || address === null) {
-      throw new Error("Server address is not an object");
-    }
+    syncServer = await startSyncServer();
 
     const workerAccount = await createWorkerAccount({
       name: "test",
-      peer: `ws://localhost:${address.port}`,
+      peer: `ws://localhost:${syncServer.port}`,
     });
 
     accountID = workerAccount.accountID;
@@ -34,9 +26,9 @@ describe("JazzBetterAuthDatabaseAdapter Tests", async () => {
     adapter = JazzBetterAuthDatabaseAdapter({
       debugLogs: {
         // If your adapter config allows passing in debug logs, then pass this here.
-        // isRunningAdapterTests: true, // This is our super secret flag to let us know to only log debug logs if a test fails.
+        isRunningAdapterTests: true, // This is our super secret flag to let us know to only log debug logs if a test fails.
       },
-      syncServer: `ws://localhost:${syncServer.address().port}`,
+      syncServer: `ws://localhost:${syncServer.port}`,
       accountID,
       accountSecret,
     });
