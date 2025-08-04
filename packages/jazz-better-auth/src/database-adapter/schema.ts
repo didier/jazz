@@ -1,5 +1,5 @@
 import { BetterAuthDbSchema, FieldAttribute } from "better-auth/db";
-import { type Account, co, z } from "jazz-tools";
+import { co, z } from "jazz-tools";
 
 type ZodPrimitiveSchema =
   | z.z.ZodString
@@ -29,17 +29,16 @@ export function createJazzSchema(schema: BetterAuthDbSchema): JazzSchema {
   const rootSchema: RootSchema = {};
 
   for (const [key, value] of Object.entries(schema)) {
-    const coMapSchema: Record<
+    const modelShape: Record<
       string,
       ZodPrimitiveSchema | ZodOptionalPrimitiveSchema
     > = {};
 
     for (const [fieldName, field] of Object.entries(value.fields)) {
-      // console.log({fieldName, field});
-      coMapSchema[field.fieldName || fieldName] = convertFieldToCoValue(field);
+      modelShape[field.fieldName || fieldName] = convertFieldToCoValue(field);
     }
 
-    const coMap = co.map(coMapSchema);
+    const coMap = co.map(modelShape);
     dbSchema[key] = coMap;
     rootSchema[key] = co.list(coMap);
   }
@@ -59,17 +58,17 @@ export function createJazzSchema(schema: BetterAuthDbSchema): JazzSchema {
         );
 
         account.root = co.map(rootSchema).create(rootValues, account);
-      } else {
-        await account.ensureLoaded({
-          resolve: {
-            root: true,
-          },
-        });
       }
 
+      const { root } = await account.ensureLoaded({
+        resolve: {
+          root: true,
+        },
+      });
+
       for (const [key, value] of Object.entries(rootSchema)) {
-        if (account.root?.[key] === undefined) {
-          account.root![key] = value.create([], account);
+        if (root[key] === undefined) {
+          root[key] = value.create([], account);
         }
       }
     });

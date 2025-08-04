@@ -61,18 +61,14 @@ export const JazzBetterAuthDatabaseAdapter = (
       }
 
       return {
-        // createSchema: async ({ file, tables }) => {
-        // },
+        // createSchema: async ({ file, tables }) => {},
         create: async ({ data, model, select }) => {
-          // console.log({method: 'create', data, model, select });
           const schema = JazzSchema.dbSchema[model]!;
 
           const worker = await getWorker();
           return JazzRepository.create(worker, schema, model, data);
         },
         update: async ({ model, where, update }) => {
-          // console.log({method: 'update', model, where, update });
-
           const worker = await getWorker();
           const updated = await JazzRepository.update(
             worker,
@@ -88,7 +84,6 @@ export const JazzBetterAuthDatabaseAdapter = (
           return updated[0]!;
         },
         updateMany: async ({ model, where, update }) => {
-          // console.log({method: 'updateMany', model, where, update });
           const worker = await getWorker();
           const updated = await JazzRepository.update(
             worker,
@@ -97,24 +92,18 @@ export const JazzBetterAuthDatabaseAdapter = (
             update,
           );
 
-          // console.log({updated});
           return updated.length;
         },
         delete: async ({ model, where }) => {
-          // console.log({method: 'delete', model, where });
-
           const worker = await getWorker();
           await JazzRepository.deleteValue(worker, model, where);
           return;
         },
         findOne: async ({ model, where }) => {
-          // console.log({method: 'findOne', model, where });
           const worker = await getWorker();
           return JazzRepository.findOne(worker, model, where);
         },
         findMany: async ({ model, where, limit, sortBy, offset }) => {
-          // console.log({method: 'findMany', model, where, limit, sortBy, offset });
-
           const worker = await getWorker();
           return JazzRepository.findMany(
             worker,
@@ -126,13 +115,10 @@ export const JazzBetterAuthDatabaseAdapter = (
           );
         },
         deleteMany: async ({ model, where }) => {
-          // console.log({method: 'deleteMany', model, where });
-
           const worker = await getWorker();
           return JazzRepository.deleteValue(worker, model, where);
         },
         count: async ({ model, where }) => {
-          // console.log({method: 'count', model, where });
           const worker = await getWorker();
           return JazzRepository.count(worker, model, where);
         },
