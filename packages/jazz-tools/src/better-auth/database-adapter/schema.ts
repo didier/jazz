@@ -1,5 +1,5 @@
 import { BetterAuthDbSchema, FieldAttribute } from "better-auth/db";
-import { co, z } from "jazz-tools";
+import { Group, co, z } from "jazz-tools";
 
 type ZodPrimitiveSchema =
   | z.z.ZodString
@@ -13,13 +13,19 @@ type ZodOptionalPrimitiveSchema = z.z.ZodOptional<ZodPrimitiveSchema>;
 
 type RootSchema = Record<keyof BetterAuthDbSchema, co.List<co.Map<any>>>;
 type DbSchema = Record<keyof BetterAuthDbSchema, co.Map<any>>;
-type WorkerAccount = co.Account<{
+
+type Account = co.Account<{
   profile: co.Profile;
-  root: co.Map<RootSchema>;
+  root: co.Map<{
+    group: typeof Group;
+    tables: co.Map<RootSchema>;
+  }>;
 }>;
 
+export type WorkerAccount = co.loaded<Account>;
+
 type JazzSchema = {
-  WorkerAccount: WorkerAccount;
+  WorkerAccount: Account;
   dbSchema: DbSchema;
   rootSchema: RootSchema;
 };
@@ -43,32 +49,47 @@ export function createJazzSchema(schema: BetterAuthDbSchema): JazzSchema {
     rootSchema[key] = co.list(coMap);
   }
 
-  const WorkerAccount = co
+  const rootMap = co.map({
+    group: Group,
+    tables: co.map(rootSchema),
+  });
+
+  const WorkerAccount: Account = co
     .account({
       profile: co.profile(),
-      root: co.map(rootSchema),
+      root: rootMap,
     })
     .withMigration(async (account) => {
       if (account.root === undefined) {
+        // Create a group for the first time
+        // it will be the owner of the all tables and data
+        const adminGroup = Group.create();
+
         const rootValues = Object.fromEntries(
           Object.entries(rootSchema).map(([key, value]) => [
             key,
-            value.create([], account),
+            value.create([], adminGroup),
           ]),
         );
 
-        account.root = co.map(rootSchema).create(rootValues, account);
+        account.root = rootMap.create({
+          group: adminGroup,
+          tables: co.map(rootSchema).create(rootValues, adminGroup),
+        });
       }
 
       const { root } = await account.ensureLoaded({
         resolve: {
-          root: true,
+          root: {
+            group: true,
+            tables: true,
+          },
         },
       });
 
       for (const [key, value] of Object.entries(rootSchema)) {
-        if (root[key] === undefined) {
-          root[key] = value.create([], account);
+        if (root.tables[key] === undefined) {
+          root.tables[key] = value.create([], root.group);
         }
       }
     });

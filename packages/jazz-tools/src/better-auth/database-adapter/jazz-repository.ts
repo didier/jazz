@@ -1,9 +1,10 @@
 import { CleanedWhere } from "better-auth/adapters";
-import { Account, CoList, CoMap, co, z } from "jazz-tools";
+import { CoList, CoMap, co, z } from "jazz-tools";
+import { WorkerAccount } from "./schema.js";
 import { filterListByWhere, paginateList, sortListByField } from "./utils.js";
 
 export async function findOne<T>(
-  worker: Account,
+  worker: WorkerAccount,
   model: string,
   where: CleanedWhere[],
 ): Promise<T | null> {
@@ -13,22 +14,24 @@ export async function findOne<T>(
 }
 
 export async function findMany<T>(
-  worker: Account,
+  worker: WorkerAccount,
   model: string,
   where: CleanedWhere[] | undefined,
   limit?: number,
   sortBy?: { field: string; direction: "asc" | "desc" },
   offset?: number,
 ): Promise<T[]> {
-  const resolvedRoot = await worker.root?.ensureLoaded({
+  const resolvedRoot = await worker.root!.ensureLoaded({
     resolve: {
-      [model]: {
-        $each: true,
+      tables: {
+        [model]: {
+          $each: true,
+        },
       },
     },
   });
 
-  const list = resolvedRoot?.[model] as CoList<CoMap> | undefined;
+  const list = resolvedRoot.tables?.[model] as CoList<CoMap> | undefined;
   if (!list) {
     return [];
   }
@@ -41,20 +44,25 @@ export async function findMany<T>(
 }
 
 export async function create<T extends z.z.core.$ZodLooseShape>(
-  worker: Account,
+  worker: WorkerAccount,
   schema: co.Map<T>,
   model: string,
   data: T,
 ): Promise<T> {
-  const node = schema.create(data, worker);
-
   const resolved = await worker.root!.ensureLoaded({
     resolve: {
-      [model]: true,
+      tables: {
+        [model]: {
+          $each: true,
+        },
+      },
     },
   });
 
-  const list = resolved[model] as unknown as CoList<CoMap>;
+  const list = resolved.tables?.[model] as unknown as CoList<CoMap>;
+
+  // Use the same owner of the table.
+  const node = schema.create(data, list._owner);
 
   list.push(node);
 
@@ -62,7 +70,7 @@ export async function create<T extends z.z.core.$ZodLooseShape>(
 }
 
 export async function update<T>(
-  worker: Account,
+  worker: WorkerAccount,
   model: string,
   where: CleanedWhere[],
   update: T,
@@ -84,7 +92,7 @@ export async function update<T>(
 }
 
 export async function deleteValue(
-  worker: Account,
+  worker: WorkerAccount,
   model: string,
   where: CleanedWhere[],
 ): Promise<number> {
@@ -98,7 +106,11 @@ export async function deleteValue(
 
   const resolved = await worker.root?.ensureLoaded({
     resolve: {
-      [model]: true,
+      tables: {
+        [model]: {
+          $each: true,
+        },
+      },
     },
   });
 
@@ -106,7 +118,7 @@ export async function deleteValue(
     throw new Error("Unable to load values");
   }
 
-  const list = resolved[model] as unknown as CoList<CoMap>;
+  const list = resolved?.tables?.[model] as unknown as CoList<CoMap>;
 
   for (const toBeDeleted of values) {
     // Get entries without trigger the shallow load
@@ -123,7 +135,7 @@ export async function deleteValue(
 }
 
 export async function count(
-  worker: Account,
+  worker: WorkerAccount,
   model: string,
   where: CleanedWhere[] | undefined,
 ): Promise<number> {

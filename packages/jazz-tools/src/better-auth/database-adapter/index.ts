@@ -1,8 +1,7 @@
 import { type AdapterDebugLogs, createAdapter } from "better-auth/adapters";
-import { co } from "jazz-tools";
 import { startWorker } from "jazz-tools/worker";
 import * as JazzRepository from "./jazz-repository.js";
-import { createJazzSchema } from "./schema.js";
+import { type WorkerAccount, createJazzSchema } from "./schema.js";
 
 export interface JazzAdapterConfig {
   /**
@@ -40,8 +39,7 @@ export const JazzBetterAuthDatabaseAdapter = (
     adapter: ({ schema }) => {
       const JazzSchema = createJazzSchema(schema);
 
-      let worker: co.loaded<typeof JazzSchema.WorkerAccount> | undefined =
-        undefined;
+      let worker: WorkerAccount | undefined = undefined;
 
       async function getWorker() {
         if (worker) {
@@ -97,7 +95,6 @@ export const JazzBetterAuthDatabaseAdapter = (
         delete: async ({ model, where }) => {
           const worker = await getWorker();
           await JazzRepository.deleteValue(worker, model, where);
-          return;
         },
         findOne: async ({ model, where }) => {
           const worker = await getWorker();
